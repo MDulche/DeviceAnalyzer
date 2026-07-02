@@ -469,8 +469,7 @@
                                     <TextBlock Text="{Binding ConfigManagerErrorCode}"
                                                FontWeight="SemiBold" VerticalAlignment="Top" />
                                     <TextBlock Text="{Binding ConfigManagerErrorDescription}"
-                                               TextWrapping="Wrap" FontSize="12"
-                                               Foreground="{Binding ConfigManagerErrorCode, Converter={StaticResource StatusToFg}}" />
+                                               TextWrapping="Wrap" FontSize="12" Foreground="#555" />
                                 </StackPanel>
                             </Grid>
 
