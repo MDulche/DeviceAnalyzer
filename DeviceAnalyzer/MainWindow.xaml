@@ -1,0 +1,658 @@
+<Window x:Class="DeviceAnalyzer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DeviceAnalyzer.ViewModels"
+        xmlns:helpers="clr-namespace:DeviceAnalyzer.Helpers"
+        xmlns:models="clr-namespace:DeviceAnalyzer.Models"
+        Title="Analyseur de périphériques PnP"
+        Width="1100" Height="700"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI" FontSize="13">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Window.Resources>
+        <helpers:NullToVisibilityConverter x:Key="NullToVis" />
+        <helpers:IntToVisibilityConverter x:Key="IntToVis" />
+
+        <Style x:Key="CatButton" TargetType="Button">
+            <Setter Property="Padding" Value="10,2" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Background" Value="#E0E0E0" />
+        </Style>
+
+        <Style x:Key="DetailLabel" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#555" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+
+        <Style x:Key="DetailValue" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
+        <!-- Device list item template -->
+        <DataTemplate DataType="{x:Type models:PnpDevice}">
+            <Border Padding="6,5" CornerRadius="4" Margin="1">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HighlightState}" Value="New">
+                                <Setter Property="Background" Value="#C8E6C9" />
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsError}" Value="True" />
+                                    <Condition Binding="{Binding HighlightState}" Value="None" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Background" Value="#FFEBEE" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Status dot -->
+                    <Ellipse Grid.Column="0" Width="10" Height="10"
+                             VerticalAlignment="Center" Margin="0,0,4,0"
+                             Fill="#BDBDBD">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="#BDBDBD" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="OK">
+                                        <Setter Property="Fill" Value="#2E7D32" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Error">
+                                        <Setter Property="Fill" Value="#C62828" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Degraded">
+                                        <Setter Property="Fill" Value="#E65100" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Pred Fail">
+                                        <Setter Property="Fill" Value="#E65100" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+
+                    <!-- Category badge -->
+                    <Border Grid.Column="1" CornerRadius="3" Padding="4,1" Margin="0,0,6,0"
+                            VerticalAlignment="Center" Background="#757575">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#757575" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Category}" Value="USB">
+                                        <Setter Property="Background" Value="#1565C0" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Category}" Value="HID">
+                                        <Setter Property="Background" Value="#6A1B9A" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Category}" Value="Audio">
+                                        <Setter Property="Background" Value="#E65100" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Category}" Value="Disk">
+                                        <Setter Property="Background" Value="#2E7D32" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Category}" Value="Network">
+                                        <Setter Property="Background" Value="#00838F" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Category}" Value="Bluetooth">
+                                        <Setter Property="Background" Value="#1565C0" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding CategoryBadgeText}" FontSize="10"
+                                   FontWeight="Bold" Foreground="White" />
+                    </Border>
+
+                    <!-- Name -->
+                    <TextBlock Grid.Column="2" Text="{Binding DisplayName}"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="Normal" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsError}" Value="True">
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                        <Setter Property="Foreground" Value="#B71C1C" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Log entry template -->
+        <DataTemplate DataType="{x:Type models:DeviceLogEntry}">
+            <Grid Margin="4,3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss}'}"
+                           FontFamily="Consolas" FontSize="11" Foreground="#999" Margin="0,0,8,0" />
+
+                <TextBlock Grid.Column="1" Margin="0,0,8,0" FontWeight="SemiBold" FontSize="12">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="▲ Connecté" />
+                            <Setter Property="Foreground" Value="#2E7D32" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EventType}" Value="Disconnected">
+                                    <Setter Property="Text" Value="▼ Déconnecté" />
+                                    <Setter Property="Foreground" Value="#C62828" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <TextBlock Grid.Column="2" Text="{Binding DeviceName}"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" />
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="160" />
+        </Grid.RowDefinitions>
+
+        <!-- ════════════════ TOOLBAR ════════════════ -->
+        <Border Grid.Row="0" Padding="8,6" CornerRadius="6"
+                Background="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"
+                Margin="0,0,0,4">
+            <StackPanel>
+                <!-- Row 1: Search + Sort + Export + Refresh -->
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Recherche :"
+                               VerticalAlignment="Center" Margin="0,0,6,0" />
+
+                    <TextBox Grid.Column="1"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center" />
+
+                    <Button Grid.Column="2" Content="✕"
+                            Command="{Binding ClearSearchCommand}"
+                            Margin="4,0,0,0" Padding="6,2" />
+
+                    <TextBlock Grid.Column="4" Text="Trier :"
+                               VerticalAlignment="Center" />
+
+                    <ComboBox Grid.Column="5"
+                              ItemsSource="{Binding SortFields}"
+                              SelectedItem="{Binding SortField}"
+                              VerticalContentAlignment="Center" />
+
+                    <ToggleButton Grid.Column="6"
+                                  IsChecked="{Binding SortAscending}"
+                                  Padding="6,2" Width="32" Margin="4,0,8,0">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Content" Value="▲" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsChecked" Value="False">
+                                        <Setter Property="Content" Value="▼" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
+
+                    <Button Grid.Column="9" Content="📥 Export"
+                            Padding="8,2" FontSize="12" Margin="0,0,4,0">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="CSV (.csv)" Command="{Binding ExportCsvCommand}" />
+                                <MenuItem Header="JSON (.json)" Command="{Binding ExportJsonCommand}" />
+                                <Separator />
+                                <MenuItem Header="Journal (.log)" Command="{Binding ExportLogCommand}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+
+                    <Button Grid.Column="10" Content="⟳ Actualiser"
+                            Command="{Binding RefreshCommand}"
+                            Padding="10,2" />
+                </Grid>
+
+                <!-- Row 2: Category filter + Error toggle -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Catégorie :"
+                               VerticalAlignment="Center" Margin="0,0,6,0" />
+
+                    <Button Grid.Column="1" Content="Tous"
+                            Command="{Binding SetCategoryCommand}" CommandParameter="All">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedCategory}" Value="All">
+                                        <Setter Property="Background" Value="#1976D2" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Grid.Column="2" Content="USB" CommandParameter="USB"
+                            Command="{Binding SetCategoryCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedCategory}" Value="USB">
+                                        <Setter Property="Background" Value="#1976D2" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Grid.Column="3" Content="HID" CommandParameter="HID"
+                            Command="{Binding SetCategoryCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedCategory}" Value="HID">
+                                        <Setter Property="Background" Value="#1976D2" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Grid.Column="4" Content="Audio" CommandParameter="Audio"
+                            Command="{Binding SetCategoryCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedCategory}" Value="Audio">
+                                        <Setter Property="Background" Value="#1976D2" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Grid.Column="5" Content="Disque" CommandParameter="Disk"
+                            Command="{Binding SetCategoryCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedCategory}" Value="Disk">
+                                        <Setter Property="Background" Value="#1976D2" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Grid.Column="6" Content="Réseau" CommandParameter="Network"
+                            Command="{Binding SetCategoryCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedCategory}" Value="Network">
+                                        <Setter Property="Background" Value="#1976D2" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Grid.Column="7" Content="Bluetooth" CommandParameter="Bluetooth"
+                            Command="{Binding SetCategoryCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
+                                <Setter Property="Margin" Value="0" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedCategory}" Value="Bluetooth">
+                                        <Setter Property="Background" Value="#1976D2" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <CheckBox Grid.Column="9" Content="Erreurs seulement"
+                              IsChecked="{Binding ShowErrorsOnly}"
+                              VerticalAlignment="Center" Margin="8,0,4,0" />
+
+                    <Border Grid.Column="10" Background="#FFCDD2" CornerRadius="10"
+                            Padding="6,1" VerticalAlignment="Center"
+                            BorderBrush="#C62828" BorderThickness="1"
+                            Visibility="{Binding ErrorCount, Converter={StaticResource IntToVis}}">
+                        <TextBlock Text="{Binding ErrorCount, StringFormat='⚠ {0}'}"
+                                   FontSize="11" FontWeight="Bold" Foreground="#B71C1C" />
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ════════════════ SUMMARY BAR ════════════════ -->
+        <Border Grid.Row="1" Padding="10,5" CornerRadius="6" Margin="0,0,0,4"
+                Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="{Binding SummaryText}"
+                           VerticalAlignment="Center" FontSize="12" Foreground="#555" />
+
+                <ProgressBar Grid.Column="1" Width="80" Height="12"
+                             IsIndeterminate="True">
+                    <ProgressBar.Style>
+                        <Style TargetType="ProgressBar">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ProgressBar.Style>
+                </ProgressBar>
+            </Grid>
+        </Border>
+
+        <!-- ════════════════ MAIN CONTENT ════════════════ -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Device list -->
+            <Border Grid.Column="0" CornerRadius="6" BorderBrush="#CCC" BorderThickness="1">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Padding="8,6"
+                               FontWeight="SemiBold" Background="#F5F5F5">
+                        Périphériques
+                        <TextBlock Text="{Binding DeviceCount, StringFormat=' ({0})'}"
+                                   Foreground="#666" FontWeight="Normal" />
+                    </TextBlock>
+
+                    <ListBox ItemsSource="{Binding Devices}"
+                             SelectedItem="{Binding SelectedDevice}"
+                             VirtualizingPanel.ScrollUnit="Pixel"
+                             BorderThickness="0"
+                             ItemTemplate="{StaticResource {x:Type models:PnpDevice}}" />
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center"
+                          Background="Transparent" />
+
+            <!-- Detail panel -->
+            <Border Grid.Column="2" CornerRadius="6" BorderBrush="#CCC" BorderThickness="1"
+                    Padding="16" Background="#FAFAFA">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+
+                        <!-- Header with copy button -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Détail du périphérique"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+
+                            <Button Grid.Column="1" Content="📋 Copier"
+                                    Command="{Binding CopyDeviceInfoCommand}"
+                                    Padding="8,3" FontSize="12" />
+                        </Grid>
+
+                        <!-- No selection message -->
+                        <TextBlock Text="Sélectionnez un périphérique dans la liste."
+                                   Foreground="#AAA" FontStyle="Italic" FontSize="14"
+                                   Visibility="{Binding SelectedDevice, Converter={StaticResource NullToVis}, ConverterParameter=invert}" />
+
+                        <!-- Details -->
+                        <StackPanel DataContext="{Binding SelectedDevice}"
+                                    Visibility="{Binding ., Converter={StaticResource NullToVis}}">
+
+                            <!-- Section: Identité -->
+                            <Border Background="#E3F2FD" CornerRadius="4" Padding="8,4" Margin="0,0,0,6">
+                                <TextBlock Text="Identité" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" />
+                            </Border>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Nom :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DisplayName}" Style="{StaticResource DetailValue}" FontSize="15" FontWeight="Bold" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Catégorie :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Category}" Style="{StaticResource DetailValue}" Foreground="#1976D2" FontWeight="SemiBold" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Description :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Description}" Style="{StaticResource DetailValue}" />
+                            </Grid>
+
+                            <!-- Section: Statut -->
+                            <Border Background="#FFF3E0" CornerRadius="4" Padding="8,4" Margin="0,6,0,6">
+                                <TextBlock Text="Statut" FontSize="12" FontWeight="SemiBold" Foreground="#E65100" />
+                            </Border>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Classe :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Class}" Style="{StaticResource DetailValue}" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Statut :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="1" Grid.Column="1">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource DetailValue}">
+                                            <Setter Property="Text" Value="{Binding Status}" />
+                                            <Setter Property="Foreground" Value="#555" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="OK">
+                                                    <Setter Property="Foreground" Value="#2E7D32" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Error">
+                                                    <Setter Property="Foreground" Value="#C62828" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Degraded">
+                                                    <Setter Property="Foreground" Value="#E65100" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Pred Fail">
+                                                    <Setter Property="Foreground" Value="#E65100" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Présent :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="2" Grid.Column="1">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource DetailValue}">
+                                            <Setter Property="Text" Value="Oui" />
+                                            <Setter Property="Foreground" Value="#2E7D32" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPresent}" Value="False">
+                                                    <Setter Property="Text" Value="Non" />
+                                                    <Setter Property="Foreground" Value="#C62828" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <!-- Section: Matériel -->
+                            <Border Background="#E8F5E9" CornerRadius="4" Padding="8,4" Margin="0,6,0,6">
+                                <TextBlock Text="Matériel" FontSize="12" FontWeight="SemiBold" Foreground="#2E7D32" />
+                            </Border>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Fabricant :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manufacturer}" Style="{StaticResource DetailValue}" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="PNPDeviceID :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PnpDeviceId}" Style="{StaticResource DetailValue}" FontSize="11" FontFamily="Consolas" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="InstanceID :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding InstanceId}" Style="{StaticResource DetailValue}" FontSize="11" FontFamily="Consolas" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="HardwareID :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding HardwareId}" Style="{StaticResource DetailValue}" FontSize="11" FontFamily="Consolas" />
+                            </Grid>
+
+                            <!-- Section: Pilote -->
+                            <Border Background="#F3E5F5" CornerRadius="4" Padding="8,4" Margin="0,6,0,6">
+                                <TextBlock Text="Pilote" FontSize="12" FontWeight="SemiBold" Foreground="#6A1B9A" />
+                            </Border>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Version :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DriverVersion}" Style="{StaticResource DetailValue}" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Date :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DriverDate}" Style="{StaticResource DetailValue}" />
+                            </Grid>
+
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- ════════════════ LOG SPLITTER ════════════════ -->
+        <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch"
+                      Background="Transparent" />
+
+        <!-- ════════════════ EVENT LOG ════════════════ -->
+        <Border Grid.Row="4" CornerRadius="6" BorderBrush="#CCC" BorderThickness="1">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Padding="8,6" Background="#F5F5F5"
+                        BorderBrush="#CCC" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center">
+                            Journal des événements
+                            <TextBlock Text="{Binding LogCount, StringFormat=' ({0})'}"
+                                       Foreground="#666" FontWeight="Normal" />
+                        </TextBlock>
+
+                        <Button Grid.Column="2" Content="✕ Effacer"
+                                Command="{Binding ClearLogCommand}"
+                                Padding="8,2" FontSize="11" />
+                    </Grid>
+                </Border>
+
+                <ListBox ItemsSource="{Binding LogEntries}"
+                         BorderThickness="0"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         ItemTemplate="{StaticResource {x:Type models:DeviceLogEntry}}" />
+            </DockPanel>
+        </Border>
+    </Grid>
+
+</Window>
