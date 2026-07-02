@@ -410,10 +410,10 @@
 
                         <TextBlock Text="Sélectionnez un périphérique dans la liste."
                                    Foreground="#AAA" FontStyle="Italic" FontSize="14"
-                                   Visibility="{Binding SelectedDevice, Converter={StaticResource NullToVis}, ConverterParameter=invert}" />
+                                   Visibility="{Binding SelectedDevice, Converter={StaticResource NullToVis}}" />
 
                         <StackPanel DataContext="{Binding SelectedDevice}"
-                                    Visibility="{Binding ., Converter={StaticResource NullToVis}}">
+                                    Visibility="{Binding ., Converter={StaticResource NullToVis}, ConverterParameter=invert}">
 
                             <!-- Section: Identité -->
                             <Border Background="#E3F2FD" CornerRadius="4" Padding="8,4" Margin="0,0,0,6">

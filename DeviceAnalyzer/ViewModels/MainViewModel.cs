@@ -78,7 +78,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         _highlightTimer.Interval = TimeSpan.FromSeconds(5);
         _highlightTimer.Tick += OnHighlightTimerTick;
 
-        _eventDebounce.Interval = TimeSpan.FromMilliseconds(300);
+        _eventDebounce.Interval = TimeSpan.FromMilliseconds(1000);
         _eventDebounce.Tick += OnEventDebounceTick;
 
         _monitor = new DeviceEventMonitor(_logger);
@@ -317,6 +317,9 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         Application.Current.Dispatcher.Invoke(() =>
         {
+            if (LogEntries.Count > 0 && LogEntries[0].EventType == DeviceEventType.Connected && LogEntries[0].PnpDeviceId == pnpId)
+                return;
+
             LogEntries.Insert(0, new DeviceLogEntry(DeviceEventType.Connected, name, pnpId, instanceId));
             OnPropertyChanged(nameof(LogCount));
 
@@ -338,6 +341,9 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         Application.Current.Dispatcher.Invoke(() =>
         {
+            if (LogEntries.Count > 0 && LogEntries[0].EventType == DeviceEventType.Disconnected && LogEntries[0].PnpDeviceId == pnpId)
+                return;
+
             LogEntries.Insert(0, new DeviceLogEntry(DeviceEventType.Disconnected, name, pnpId, instanceId));
             OnPropertyChanged(nameof(LogCount));
 
