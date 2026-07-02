@@ -10,6 +10,10 @@
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI" FontSize="13">
 
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
     <Window.Resources>
         <helpers:NullToVisibilityConverter x:Key="NullToVis" />
         <helpers:IntToVisibilityConverter x:Key="IntToVis" />
