@@ -112,7 +112,6 @@ public class PnpDevice
         DriverDate = GetString(mo, "DriverDate");
         HardwareId = string.Join(", ", GetStringArray(mo, "HardwareID"));
         IsPresent = string.Equals(GetString(mo, "Present"), "True", StringComparison.OrdinalIgnoreCase);
-        ConfigManagerErrorCode = GetInt(mo, "ConfigManagerErrorCode");
         Category = DetectCategory();
     }
 
