@@ -38,7 +38,7 @@
         </Style>
 
         <!-- Device list item template -->
-        <DataTemplate DataType="{x:Type models:PnpDevice}">
+        <DataTemplate DataType="{x:Type models:PnpDevice}" x:Key="PnpDeviceTemplate">
             <Border Padding="6,5" CornerRadius="4" Margin="1">
                 <Border.Style>
                     <Style TargetType="Border">
@@ -141,7 +141,7 @@
         </DataTemplate>
 
         <!-- Log entry template -->
-        <DataTemplate DataType="{x:Type models:DeviceLogEntry}">
+        <DataTemplate DataType="{x:Type models:DeviceLogEntry}" x:Key="DeviceLogTemplate">
             <Grid Margin="4,3">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -437,7 +437,7 @@
                              SelectedItem="{Binding SelectedDevice}"
                              VirtualizingPanel.ScrollUnit="Pixel"
                              BorderThickness="0"
-                             ItemTemplate="{StaticResource {x:Type models:PnpDevice}}" />
+                             ItemTemplate="{StaticResource PnpDeviceTemplate}" />
                 </DockPanel>
             </Border>
 
@@ -650,7 +650,7 @@
                 <ListBox ItemsSource="{Binding LogEntries}"
                          BorderThickness="0"
                          VirtualizingPanel.ScrollUnit="Pixel"
-                         ItemTemplate="{StaticResource {x:Type models:DeviceLogEntry}}" />
+                         ItemTemplate="{StaticResource DeviceLogTemplate}" />
             </DockPanel>
         </Border>
     </Grid>
