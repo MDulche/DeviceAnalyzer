@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -14,10 +13,17 @@ namespace DeviceAnalyzer.ViewModels;
 public class MainViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly PnpDeviceService _service = new();
-    private readonly DeviceEventMonitor _monitor = new();
+    private readonly DeviceEventMonitor _monitor;
+    private readonly ILogger _logger;
+    private readonly IClipboardService _clipboard;
+    private readonly IExportService _export;
+    private readonly IDialogService _dialog;
     private readonly DispatcherTimer _highlightTimer = new();
-    private HashSet<string> _knownDeviceIds = [];
+    private readonly DispatcherTimer _eventDebounce = new();
+
+    private CancellationTokenSource? _refreshCts;
     private List<PnpDevice> _allDevicesCache = [];
+    private HashSet<string> _knownDeviceIds = [];
 
     private PnpDevice? _selectedDevice;
     private string _searchText = "";
@@ -43,14 +49,24 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     public List<string> SortFields { get; } = ["Nom", "Classe", "Statut"];
 
     public MainViewModel()
+        : this(new Logger(), new ClipboardService(), new ExportService(new DialogService()), new DialogService())
     {
+    }
+
+    public MainViewModel(ILogger logger, IClipboardService clipboard, IExportService export, IDialogService dialog)
+    {
+        _logger = logger;
+        _clipboard = clipboard;
+        _export = export;
+        _dialog = dialog;
+
         RefreshCommand = new RelayCommand(_ => _ = LoadDevicesAsync());
         ClearSearchCommand = new RelayCommand(_ => SearchText = "");
         ClearLogCommand = new RelayCommand(_ => LogEntries.Clear());
         CopyDeviceInfoCommand = new RelayCommand(_ => CopyDeviceInfo(), _ => SelectedDevice is not null);
-        ExportCsvCommand = new RelayCommand(_ => ExportCsv());
-        ExportJsonCommand = new RelayCommand(_ => ExportJson());
-        ExportLogCommand = new RelayCommand(_ => ExportLog());
+        ExportCsvCommand = new RelayCommand(_ => _export.ExportCsv(Devices));
+        ExportJsonCommand = new RelayCommand(_ => _export.ExportJson(Devices));
+        ExportLogCommand = new RelayCommand(_ => _export.ExportLog(LogEntries));
         SetCategoryCommand = new RelayCommand(p =>
         {
             if (p is string s && Enum.TryParse<DeviceCategory>(s, out var cat))
@@ -60,10 +76,15 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         _highlightTimer.Interval = TimeSpan.FromSeconds(5);
         _highlightTimer.Tick += OnHighlightTimerTick;
 
+        _eventDebounce.Interval = TimeSpan.FromMilliseconds(300);
+        _eventDebounce.Tick += OnEventDebounceTick;
+
+        _monitor = new DeviceEventMonitor(_logger);
         _monitor.DeviceConnected += OnDeviceConnected;
         _monitor.DeviceDisconnected += OnDeviceDisconnected;
         _monitor.Start();
 
+        _logger.Info("MainViewModel initialisé");
         _ = LoadDevicesAsync();
     }
 
@@ -163,18 +184,28 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
 
     private async Task LoadDevicesAsync()
     {
+        _refreshCts?.Cancel();
+        _refreshCts = new CancellationTokenSource();
+        var token = _refreshCts.Token;
+
         IsLoading = true;
 
         try
         {
-            _allDevicesCache = await Task.Run(() => _service.GetAllDevices());
+            _allDevicesCache = await Task.Run(() => _service.GetAllDevices(), token);
+            token.ThrowIfCancellationRequested();
+
+            _logger.Info($"Cache rechargé : {_allDevicesCache.Count} périphériques");
             ApplyFilters();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Info("Rechargement annulé");
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
-                $"Erreur lors du chargement des périphériques :\n{ex.Message}",
-                "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            _logger.Error("Erreur lors du chargement des périphériques", ex);
+            _dialog.ShowError($"Erreur lors du chargement des périphériques :\n{ex.Message}");
         }
         finally
         {
@@ -186,6 +217,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         var previousIds = _knownDeviceIds;
         var newIds = new HashSet<string>();
+        var savedSelectionId = SelectedDevice?.PnpDeviceId;
 
         var list = _allDevicesCache.AsEnumerable();
 
@@ -237,6 +269,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         if (Devices.Any(d => d.HighlightState == HighlightState.New))
             _highlightTimer.Start();
 
+        // Restore selection
+        if (savedSelectionId is not null)
+        {
+            SelectedDevice = Devices.FirstOrDefault(d => d.PnpDeviceId == savedSelectionId);
+        }
+
         var total = Devices.Count;
         var ok = Devices.Count(d => d.Status == "OK");
         var err = Devices.Count(d => d.IsError);
@@ -253,7 +291,9 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         {
             LogEntries.Insert(0, new DeviceLogEntry(DeviceEventType.Connected, name, pnpId, instanceId));
             OnPropertyChanged(nameof(LogCount));
-            _ = LoadDevicesAsync();
+            _logger.Info($"Événement connecté : {name} ({pnpId})");
+            _eventDebounce.Stop();
+            _eventDebounce.Start();
         });
     }
 
@@ -263,15 +303,25 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         {
             LogEntries.Insert(0, new DeviceLogEntry(DeviceEventType.Disconnected, name, pnpId, instanceId));
             OnPropertyChanged(nameof(LogCount));
-            _ = LoadDevicesAsync();
+            _logger.Info($"Événement déconnecté : {name} ({pnpId})");
+            _eventDebounce.Stop();
+            _eventDebounce.Start();
         });
+    }
+
+    private void OnEventDebounceTick(object? sender, EventArgs e)
+    {
+        _eventDebounce.Stop();
+        _logger.Info("Debounce déclenché → rechargement");
+        _ = LoadDevicesAsync();
     }
 
     private void OnHighlightTimerTick(object? sender, EventArgs e)
     {
         _highlightTimer.Stop();
-        foreach (var d in Devices)
+        foreach (var d in _allDevicesCache)
             d.HighlightState = HighlightState.None;
+        ApplyFilters();
     }
 
     private void CopyDeviceInfo()
@@ -291,62 +341,26 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
                    $"Pilote       : {d.DriverVersion} ({d.DriverDate})\n" +
                    $"Présent      : {(d.IsPresent ? "Oui" : "Non")}";
 
-        try { Clipboard.SetText(text); }
-        catch { }
-    }
-
-    private void ExportCsv()
-    {
-        var dlg = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = "Fichier CSV (*.csv)|*.csv",
-            FileName = $"peripheriques_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
-        };
-
-        if (dlg.ShowDialog() == true)
-        {
-            var csv = _service.ExportToCsv([.. Devices]);
-            File.WriteAllText(dlg.FileName, csv, System.Text.Encoding.UTF8);
-        }
-    }
-
-    private void ExportJson()
-    {
-        var dlg = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = "Fichier JSON (*.json)|*.json",
-            FileName = $"peripheriques_{DateTime.Now:yyyyMMdd_HHmmss}.json"
-        };
-
-        if (dlg.ShowDialog() == true)
-        {
-            var json = _service.ExportToJson([.. Devices]);
-            File.WriteAllText(dlg.FileName, json, System.Text.Encoding.UTF8);
-        }
-    }
-
-    private void ExportLog()
-    {
-        var dlg = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = "Fichier texte (*.log;*.txt)|*.log;*.txt",
-            FileName = $"journal_pnp_{DateTime.Now:yyyyMMdd_HHmmss}.log"
-        };
-
-        if (dlg.ShowDialog() == true)
-        {
-            var log = _service.ExportLog([.. LogEntries]);
-            File.WriteAllText(dlg.FileName, log, System.Text.Encoding.UTF8);
-        }
+        _clipboard.CopyText(text);
+        _logger.Info($"Copié dans le presse-papiers : {d.DisplayName}");
     }
 
     public void Dispose()
     {
+        _refreshCts?.Cancel();
+        _refreshCts?.Dispose();
+
         _highlightTimer.Stop();
         _highlightTimer.Tick -= OnHighlightTimerTick;
+
+        _eventDebounce.Stop();
+        _eventDebounce.Tick -= OnEventDebounceTick;
+
         _monitor.DeviceConnected -= OnDeviceConnected;
         _monitor.DeviceDisconnected -= OnDeviceDisconnected;
         _monitor.Dispose();
+
+        _logger.Info("MainViewModel disposed");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

@@ -4,18 +4,20 @@
         xmlns:vm="clr-namespace:DeviceAnalyzer.ViewModels"
         xmlns:helpers="clr-namespace:DeviceAnalyzer.Helpers"
         xmlns:models="clr-namespace:DeviceAnalyzer.Models"
+        xmlns:conv="clr-namespace:DeviceAnalyzer.Converters"
         Title="Analyseur de périphériques PnP"
         Width="1100" Height="700"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI" FontSize="13">
 
-    <Window.DataContext>
-        <vm:MainViewModel />
-    </Window.DataContext>
-
     <Window.Resources>
         <helpers:NullToVisibilityConverter x:Key="NullToVis" />
         <helpers:IntToVisibilityConverter x:Key="IntToVis" />
+        <conv:StatusToColorConverter x:Key="StatusToColor" />
+        <conv:StatusToForegroundConverter x:Key="StatusToFg" />
+        <conv:CategoryToColorConverter x:Key="CategoryToColor" />
+        <conv:CategoryToTextConverter x:Key="CategoryToText" />
+        <conv:BoolToTextConverter x:Key="BoolToText" />
 
         <Style x:Key="CatButton" TargetType="Button">
             <Setter Property="Padding" Value="10,2" />
@@ -64,64 +66,17 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Status dot -->
                     <Ellipse Grid.Column="0" Width="10" Height="10"
                              VerticalAlignment="Center" Margin="0,0,4,0"
-                             Fill="#BDBDBD">
-                        <Ellipse.Style>
-                            <Style TargetType="Ellipse">
-                                <Setter Property="Fill" Value="#BDBDBD" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Status}" Value="OK">
-                                        <Setter Property="Fill" Value="#2E7D32" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Status}" Value="Error">
-                                        <Setter Property="Fill" Value="#C62828" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Status}" Value="Degraded">
-                                        <Setter Property="Fill" Value="#E65100" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Status}" Value="Pred Fail">
-                                        <Setter Property="Fill" Value="#E65100" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Ellipse.Style>
-                    </Ellipse>
+                             Fill="{Binding Status, Converter={StaticResource StatusToColor}}" />
 
-                    <!-- Category badge -->
                     <Border Grid.Column="1" CornerRadius="3" Padding="4,1" Margin="0,0,6,0"
-                            VerticalAlignment="Center" Background="#757575">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Background" Value="#757575" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Category}" Value="USB">
-                                        <Setter Property="Background" Value="#1565C0" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Category}" Value="HID">
-                                        <Setter Property="Background" Value="#6A1B9A" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Category}" Value="Audio">
-                                        <Setter Property="Background" Value="#E65100" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Category}" Value="Disk">
-                                        <Setter Property="Background" Value="#2E7D32" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Category}" Value="Network">
-                                        <Setter Property="Background" Value="#00838F" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Category}" Value="Bluetooth">
-                                        <Setter Property="Background" Value="#1565C0" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <TextBlock Text="{Binding CategoryBadgeText}" FontSize="10"
-                                   FontWeight="Bold" Foreground="White" />
+                            VerticalAlignment="Center"
+                            Background="{Binding Category, Converter={StaticResource CategoryToColor}}">
+                        <TextBlock Text="{Binding Category, Converter={StaticResource CategoryToText}}"
+                                   FontSize="10" FontWeight="Bold" Foreground="White" />
                     </Border>
 
-                    <!-- Name -->
                     <TextBlock Grid.Column="2" Text="{Binding DisplayName}"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                         <TextBlock.Style>
@@ -187,7 +142,6 @@
                 Background="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"
                 Margin="0,0,0,4">
             <StackPanel>
-                <!-- Row 1: Search + Sort + Export + Refresh -->
                 <Grid Margin="0,0,0,4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -254,7 +208,6 @@
                             Padding="10,2" />
                 </Grid>
 
-                <!-- Row 2: Category filter + Error toggle -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -286,9 +239,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-
-                    <Button Grid.Column="2" Content="USB" CommandParameter="USB"
-                            Command="{Binding SetCategoryCommand}">
+                    <Button Grid.Column="2" Content="USB" CommandParameter="USB" Command="{Binding SetCategoryCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
                                 <Style.Triggers>
@@ -300,9 +251,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-
-                    <Button Grid.Column="3" Content="HID" CommandParameter="HID"
-                            Command="{Binding SetCategoryCommand}">
+                    <Button Grid.Column="3" Content="HID" CommandParameter="HID" Command="{Binding SetCategoryCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
                                 <Style.Triggers>
@@ -314,9 +263,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-
-                    <Button Grid.Column="4" Content="Audio" CommandParameter="Audio"
-                            Command="{Binding SetCategoryCommand}">
+                    <Button Grid.Column="4" Content="Audio" CommandParameter="Audio" Command="{Binding SetCategoryCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
                                 <Style.Triggers>
@@ -328,9 +275,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-
-                    <Button Grid.Column="5" Content="Disque" CommandParameter="Disk"
-                            Command="{Binding SetCategoryCommand}">
+                    <Button Grid.Column="5" Content="Disque" CommandParameter="Disk" Command="{Binding SetCategoryCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
                                 <Style.Triggers>
@@ -342,9 +287,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-
-                    <Button Grid.Column="6" Content="Réseau" CommandParameter="Network"
-                            Command="{Binding SetCategoryCommand}">
+                    <Button Grid.Column="6" Content="Réseau" CommandParameter="Network" Command="{Binding SetCategoryCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
                                 <Style.Triggers>
@@ -356,9 +299,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-
-                    <Button Grid.Column="7" Content="Bluetooth" CommandParameter="Bluetooth"
-                            Command="{Binding SetCategoryCommand}">
+                    <Button Grid.Column="7" Content="Bluetooth" CommandParameter="Bluetooth" Command="{Binding SetCategoryCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource CatButton}">
                                 <Setter Property="Margin" Value="0" />
@@ -395,12 +336,9 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
                 <TextBlock Grid.Column="0" Text="{Binding SummaryText}"
                            VerticalAlignment="Center" FontSize="12" Foreground="#555" />
-
-                <ProgressBar Grid.Column="1" Width="80" Height="12"
-                             IsIndeterminate="True">
+                <ProgressBar Grid.Column="1" Width="80" Height="12" IsIndeterminate="True">
                     <ProgressBar.Style>
                         <Style TargetType="ProgressBar">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -432,7 +370,6 @@
                         <TextBlock Text="{Binding DeviceCount, StringFormat=' ({0})'}"
                                    Foreground="#666" FontWeight="Normal" />
                     </TextBlock>
-
                     <ListBox ItemsSource="{Binding Devices}"
                              SelectedItem="{Binding SelectedDevice}"
                              VirtualizingPanel.ScrollUnit="Pixel"
@@ -450,28 +387,23 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
 
-                        <!-- Header with copy button -->
                         <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-
                             <TextBlock Grid.Column="0" Text="Détail du périphérique"
                                        FontSize="16" FontWeight="SemiBold"
                                        VerticalAlignment="Center" />
-
                             <Button Grid.Column="1" Content="📋 Copier"
                                     Command="{Binding CopyDeviceInfoCommand}"
                                     Padding="8,3" FontSize="12" />
                         </Grid>
 
-                        <!-- No selection message -->
                         <TextBlock Text="Sélectionnez un périphérique dans la liste."
                                    Foreground="#AAA" FontStyle="Italic" FontSize="14"
                                    Visibility="{Binding SelectedDevice, Converter={StaticResource NullToVis}, ConverterParameter=invert}" />
 
-                        <!-- Details -->
                         <StackPanel DataContext="{Binding SelectedDevice}"
                                     Visibility="{Binding ., Converter={StaticResource NullToVis}}">
 
@@ -479,24 +411,17 @@
                             <Border Background="#E3F2FD" CornerRadius="4" Padding="8,4" Margin="0,0,0,6">
                                 <TextBlock Text="Identité" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" />
                             </Border>
-
                             <Grid Margin="0,0,0,6">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="100" /><ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Nom :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DisplayName}" Style="{StaticResource DetailValue}" FontSize="15" FontWeight="Bold" />
-
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Catégorie :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Category}" Style="{StaticResource DetailValue}" Foreground="#1976D2" FontWeight="SemiBold" />
-
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Description :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Description}" Style="{StaticResource DetailValue}" />
                             </Grid>
@@ -505,49 +430,24 @@
                             <Border Background="#FFF3E0" CornerRadius="4" Padding="8,4" Margin="0,6,0,6">
                                 <TextBlock Text="Statut" FontSize="12" FontWeight="SemiBold" Foreground="#E65100" />
                             </Border>
-
                             <Grid Margin="0,0,0,6">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="100" /><ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Classe :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Class}" Style="{StaticResource DetailValue}" />
-
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Statut :" Style="{StaticResource DetailLabel}" />
-                                <TextBlock Grid.Row="1" Grid.Column="1">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock" BasedOn="{StaticResource DetailValue}">
-                                            <Setter Property="Text" Value="{Binding Status}" />
-                                            <Setter Property="Foreground" Value="#555" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Status}" Value="OK">
-                                                    <Setter Property="Foreground" Value="#2E7D32" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Error">
-                                                    <Setter Property="Foreground" Value="#C62828" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Degraded">
-                                                    <Setter Property="Foreground" Value="#E65100" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Pred Fail">
-                                                    <Setter Property="Foreground" Value="#E65100" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Status}"
+                                           Style="{StaticResource DetailValue}"
+                                           Foreground="{Binding Status, Converter={StaticResource StatusToFg}}" />
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Présent :" Style="{StaticResource DetailLabel}" />
-                                <TextBlock Grid.Row="2" Grid.Column="1">
+                                 <TextBlock Grid.Row="2" Grid.Column="1"
+                                            TextWrapping="Wrap" VerticalAlignment="Top">
                                     <TextBlock.Style>
-                                        <Style TargetType="TextBlock" BasedOn="{StaticResource DetailValue}">
+                                        <Style TargetType="TextBlock">
                                             <Setter Property="Text" Value="Oui" />
                                             <Setter Property="Foreground" Value="#2E7D32" />
                                             <Style.Triggers>
@@ -565,28 +465,19 @@
                             <Border Background="#E8F5E9" CornerRadius="4" Padding="8,4" Margin="0,6,0,6">
                                 <TextBlock Text="Matériel" FontSize="12" FontWeight="SemiBold" Foreground="#2E7D32" />
                             </Border>
-
                             <Grid Margin="0,0,0,6">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="100" /><ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Fabricant :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manufacturer}" Style="{StaticResource DetailValue}" />
-
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="PNPDeviceID :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PnpDeviceId}" Style="{StaticResource DetailValue}" FontSize="11" FontFamily="Consolas" />
-
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="InstanceID :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding InstanceId}" Style="{StaticResource DetailValue}" FontSize="11" FontFamily="Consolas" />
-
                                 <TextBlock Grid.Row="3" Grid.Column="0" Text="HardwareID :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding HardwareId}" Style="{StaticResource DetailValue}" FontSize="11" FontFamily="Consolas" />
                             </Grid>
@@ -595,20 +486,15 @@
                             <Border Background="#F3E5F5" CornerRadius="4" Padding="8,4" Margin="0,6,0,6">
                                 <TextBlock Text="Pilote" FontSize="12" FontWeight="SemiBold" Foreground="#6A1B9A" />
                             </Border>
-
                             <Grid Margin="0,0,0,6">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="100" /><ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Version :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DriverVersion}" Style="{StaticResource DetailValue}" />
-
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Date :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DriverDate}" Style="{StaticResource DetailValue}" />
                             </Grid>
@@ -619,34 +505,27 @@
             </Border>
         </Grid>
 
-        <!-- ════════════════ LOG SPLITTER ════════════════ -->
-        <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch"
-                      Background="Transparent" />
+        <!-- ════════════════ LOG ════════════════ -->
+        <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
 
-        <!-- ════════════════ EVENT LOG ════════════════ -->
         <Border Grid.Row="4" CornerRadius="6" BorderBrush="#CCC" BorderThickness="1">
             <DockPanel>
                 <Border DockPanel.Dock="Top" Padding="8,6" Background="#F5F5F5"
                         BorderBrush="#CCC" BorderThickness="0,0,0,1">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-
                         <TextBlock Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center">
                             Journal des événements
                             <TextBlock Text="{Binding LogCount, StringFormat=' ({0})'}"
                                        Foreground="#666" FontWeight="Normal" />
                         </TextBlock>
-
                         <Button Grid.Column="2" Content="✕ Effacer"
                                 Command="{Binding ClearLogCommand}"
                                 Padding="8,2" FontSize="11" />
                     </Grid>
                 </Border>
-
                 <ListBox ItemsSource="{Binding LogEntries}"
                          BorderThickness="0"
                          VirtualizingPanel.ScrollUnit="Pixel"
@@ -654,5 +533,4 @@
             </DockPanel>
         </Border>
     </Grid>
-
 </Window>

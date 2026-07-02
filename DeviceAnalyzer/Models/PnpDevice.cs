@@ -22,42 +22,27 @@ public class PnpDevice
     public string DriverDate { get; }
     public string HardwareId { get; }
     public bool IsPresent { get; }
-    public HighlightState HighlightState { get; set; } = HighlightState.None;
     public DeviceCategory Category { get; }
+
+    public HighlightState HighlightState
+    {
+        get => _highlightState;
+        set
+        {
+            if (_highlightState != value)
+            {
+                _highlightState = value;
+                PropertyChanged?.Invoke(this,
+                    new System.ComponentModel.PropertyChangedEventArgs(nameof(HighlightState)));
+            }
+        }
+    }
+    private HighlightState _highlightState;
 
     public bool IsError => Status is not "" and not "OK";
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? "(Périphérique inconnu)" : Name;
 
-    public string StatusDotColor => Status switch
-    {
-        "OK" => "#2E7D32",
-        "Error" => "#C62828",
-        "Degraded" => "#E65100",
-        "Pred Fail" => "#E65100",
-        _ => "#BDBDBD"
-    };
-
-    public string CategoryBadgeColor => Category switch
-    {
-        DeviceCategory.USB => "#1565C0",
-        DeviceCategory.HID => "#6A1B9A",
-        DeviceCategory.Audio => "#E65100",
-        DeviceCategory.Disk => "#2E7D32",
-        DeviceCategory.Network => "#00838F",
-        DeviceCategory.Bluetooth => "#1565C0",
-        _ => "#757575"
-    };
-
-    public string CategoryBadgeText => Category switch
-    {
-        DeviceCategory.USB => "USB",
-        DeviceCategory.HID => "HID",
-        DeviceCategory.Audio => "AUDIO",
-        DeviceCategory.Disk => "DISQUE",
-        DeviceCategory.Network => "RÉSEAU",
-        DeviceCategory.Bluetooth => "BT",
-        _ => "AUTRE"
-    };
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 
     public PnpDevice(ManagementBaseObject mo)
     {

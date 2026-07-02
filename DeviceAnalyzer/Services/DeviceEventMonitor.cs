@@ -6,9 +6,15 @@ public class DeviceEventMonitor : IDisposable
 {
     private ManagementEventWatcher? _creationWatcher;
     private ManagementEventWatcher? _deletionWatcher;
+    private readonly ILogger _logger;
 
     public event Action<string, string, string>? DeviceConnected;
     public event Action<string, string, string>? DeviceDisconnected;
+
+    public DeviceEventMonitor(ILogger logger)
+    {
+        _logger = logger;
+    }
 
     public void Start()
     {
@@ -29,6 +35,8 @@ public class DeviceEventMonitor : IDisposable
         _deletionWatcher = new ManagementEventWatcher(deletionQuery);
         _deletionWatcher.EventArrived += OnDeletionEvent;
         _deletionWatcher.Start();
+
+        _logger.Info("DeviceEventMonitor démarré");
     }
 
     private void OnCreationEvent(object? sender, EventArrivedEventArgs e)
@@ -43,7 +51,10 @@ public class DeviceEventMonitor : IDisposable
                 DeviceConnected?.Invoke(name, pnpId, devId);
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.Error("Erreur dans OnCreationEvent", ex);
+        }
     }
 
     private void OnDeletionEvent(object? sender, EventArrivedEventArgs e)
@@ -58,7 +69,10 @@ public class DeviceEventMonitor : IDisposable
                 DeviceDisconnected?.Invoke(name, pnpId, devId);
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.Error("Erreur dans OnDeletionEvent", ex);
+        }
     }
 
     private static string GetString(ManagementBaseObject mo, string property)
@@ -73,5 +87,6 @@ public class DeviceEventMonitor : IDisposable
         _creationWatcher?.Dispose();
         _deletionWatcher?.Stop();
         _deletionWatcher?.Dispose();
+        _logger.Info("DeviceEventMonitor arrêté");
     }
 }
