@@ -15,7 +15,10 @@ public class PnpDeviceService
             "SELECT * FROM Win32_PnPEntity");
 
         foreach (var mo in searcher.Get())
-            devices.Add(new PnpDevice(mo));
+        {
+            try { devices.Add(new PnpDevice(mo)); }
+            catch { /* skip individual device if construction fails */ }
+        }
 
         return devices;
     }

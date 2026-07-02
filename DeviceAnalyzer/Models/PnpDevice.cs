@@ -153,8 +153,17 @@ public class PnpDevice
 
     private static int GetInt(ManagementBaseObject mo, string property)
     {
-        try { return Convert.ToInt32(mo[property]); }
-        catch { return -1; }
+        try
+        {
+            var val = mo[property];
+            if (val is null) return 0;
+            if (val is int iv) return iv;
+            return Convert.ToInt32(val);
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private static string[] GetStringArray(ManagementBaseObject mo, string property)
