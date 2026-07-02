@@ -23,11 +23,11 @@ public class PnpDeviceService
     public string ExportToCsv(List<PnpDevice> devices)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Nom;Classe;Statut;Fabricant;PNPDeviceID;InstanceID;HardwareID;Description;VersionPilote;DatePilote;Present;Categorie");
+        sb.AppendLine("Nom;Classe;Statut;CodeErreur;Fabricant;PNPDeviceID;InstanceID;HardwareID;Description;VersionPilote;DatePilote;Present;Categorie");
 
         foreach (var d in devices)
         {
-            sb.AppendLine($"{EscapeCsv(d.Name)};{EscapeCsv(d.Class)};{EscapeCsv(d.Status)};{EscapeCsv(d.Manufacturer)};{EscapeCsv(d.PnpDeviceId)};{EscapeCsv(d.InstanceId)};{EscapeCsv(d.HardwareId)};{EscapeCsv(d.Description)};{EscapeCsv(d.DriverVersion)};{EscapeCsv(d.DriverDate)};{d.IsPresent};{d.Category}");
+            sb.AppendLine($"{EscapeCsv(d.Name)};{EscapeCsv(d.Class)};{EscapeCsv(d.Status)};{d.ConfigManagerErrorCode};{EscapeCsv(d.Manufacturer)};{EscapeCsv(d.PnpDeviceId)};{EscapeCsv(d.InstanceId)};{EscapeCsv(d.HardwareId)};{EscapeCsv(d.Description)};{EscapeCsv(d.DriverVersion)};{EscapeCsv(d.DriverDate)};{d.IsPresent};{d.Category}");
         }
 
         return sb.ToString();
@@ -37,7 +37,8 @@ public class PnpDeviceService
     {
         var data = devices.Select(d => new
         {
-            d.Name, d.Class, d.Status, d.Manufacturer,
+            d.Name, d.Class, d.Status, CodeErreur = d.ConfigManagerErrorCode,
+            d.Manufacturer,
             PnpDeviceId = d.PnpDeviceId, InstanceId = d.InstanceId,
             d.HardwareId, d.Description, DriverVersion = d.DriverVersion,
             DriverDate = d.DriverDate, d.IsPresent,

@@ -32,7 +32,9 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _sortField = "Nom";
     private bool _sortAscending = true;
     private bool _showErrorsOnly;
+    private bool _showProblemsOnly;
     private string _summaryText = "";
+    private readonly Dictionary<string, DeviceEventStats> _deviceEventStats = [];
 
     public ObservableCollection<PnpDevice> Devices { get; } = [];
     public ObservableCollection<DeviceLogEntry> LogEntries { get; } = [];
@@ -97,10 +99,19 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     public PnpDevice? SelectedDevice
     {
         get => _selectedDevice;
-        set { _selectedDevice = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanCopy)); }
+        set
+        {
+            _selectedDevice = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanCopy));
+            OnPropertyChanged(nameof(SelectedDeviceStats));
+        }
     }
 
     public bool CanCopy => SelectedDevice is not null;
+
+    public DeviceEventStats? SelectedDeviceStats =>
+        SelectedDevice is not null ? GetDeviceStats(SelectedDevice.PnpDeviceId) : null;
 
     public string SummaryText
     {
@@ -178,6 +189,20 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public bool ShowProblemsOnly
+    {
+        get => _showProblemsOnly;
+        set
+        {
+            if (_showProblemsOnly != value)
+            {
+                _showProblemsOnly = value;
+                OnPropertyChanged();
+                ApplyFilters();
+            }
+        }
+    }
+
     public int DeviceCount => Devices.Count;
     public int LogCount => LogEntries.Count;
     public int ErrorCount => Devices.Count(d => d.IsError);
@@ -239,6 +264,9 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         if (_showErrorsOnly)
             list = list.Where(d => d.IsError);
 
+        if (_showProblemsOnly)
+            list = list.Where(d => d.IsProblematic);
+
         list = _sortField switch
         {
             "Classe" => _sortAscending
@@ -291,6 +319,15 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         {
             LogEntries.Insert(0, new DeviceLogEntry(DeviceEventType.Connected, name, pnpId, instanceId));
             OnPropertyChanged(nameof(LogCount));
+
+            if (!string.IsNullOrEmpty(pnpId))
+            {
+                if (!_deviceEventStats.ContainsKey(pnpId))
+                    _deviceEventStats[pnpId] = new DeviceEventStats(name);
+                _deviceEventStats[pnpId].ConnectionCount++;
+                _deviceEventStats[pnpId].LastSeen = DateTime.Now;
+            }
+
             _logger.Info($"Événement connecté : {name} ({pnpId})");
             _eventDebounce.Stop();
             _eventDebounce.Start();
@@ -303,6 +340,15 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         {
             LogEntries.Insert(0, new DeviceLogEntry(DeviceEventType.Disconnected, name, pnpId, instanceId));
             OnPropertyChanged(nameof(LogCount));
+
+            if (!string.IsNullOrEmpty(pnpId))
+            {
+                if (!_deviceEventStats.ContainsKey(pnpId))
+                    _deviceEventStats[pnpId] = new DeviceEventStats(name);
+                _deviceEventStats[pnpId].DisconnectionCount++;
+                _deviceEventStats[pnpId].LastSeen = DateTime.Now;
+            }
+
             _logger.Info($"Événement déconnecté : {name} ({pnpId})");
             _eventDebounce.Stop();
             _eventDebounce.Start();
@@ -368,5 +414,26 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public DeviceEventStats? GetDeviceStats(string pnpDeviceId)
+    {
+        return _deviceEventStats.TryGetValue(pnpDeviceId, out var stats) ? stats : null;
+    }
+}
+
+public class DeviceEventStats
+{
+    public string DeviceName { get; set; }
+    public int ConnectionCount { get; set; }
+    public int DisconnectionCount { get; set; }
+    public int TotalEvents => ConnectionCount + DisconnectionCount;
+    public DateTime FirstSeen { get; } = DateTime.Now;
+    public DateTime LastSeen { get; set; } = DateTime.Now;
+    public bool IsUnstable => DisconnectionCount >= 3;
+
+    public DeviceEventStats(string deviceName)
+    {
+        DeviceName = deviceName;
     }
 }

@@ -22,6 +22,7 @@ public class PnpDevice
     public string DriverDate { get; }
     public string HardwareId { get; }
     public bool IsPresent { get; }
+    public int ConfigManagerErrorCode { get; }
     public DeviceCategory Category { get; }
 
     public HighlightState HighlightState
@@ -39,8 +40,62 @@ public class PnpDevice
     }
     private HighlightState _highlightState;
 
-    public bool IsError => Status is not "" and not "OK";
+    public bool IsError => Status is not "" and not "OK" || ConfigManagerErrorCode > 0;
+    public bool IsProblematic => IsError || !IsPresent || ConfigManagerErrorCode > 0;
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? "(Périphérique inconnu)" : Name;
+
+    public string ConfigManagerErrorDescription => ConfigManagerErrorCode switch
+    {
+        0  => "Aucune erreur",
+        1  => "Pilote non configuré correctement",
+        2  => "Pilote non chargé",
+        3  => "Pilote endommagé ou manquant",
+        4  => "Échec du pilote (code d’erreur protocolaire)",
+        5  => "Échec de l’initialisation",
+        6  => "Ressources insuffisantes",
+        7  => "Absence de pilote",
+        8  => "Fabricant du pilote inconnu",
+        9  => "Mauvaise configuration du pilote",
+        10 => "Conflit d’E/S",
+        11 => "Périphérique retiré",
+        12 => "Périphérique non disponible (en attente d’autres)",
+        13 => "Stockage insuffisant",
+        14 => "Matériel défaillant",
+        15 => "Incompatibilité de ressources",
+        16 => "Conflit de ressources",
+        17 => "Pilote de filtre inconnu",
+        18 => "Signature du pilote manquante",
+        19 => "Périphérique marqué comme problème",
+        20 => "Firmware corrompu",
+        21 => "Pilote non certifié",
+        22 => "Réinitialisation du périphérique",
+        23 => "Conflit de ressources logicielles",
+        24 => "Périphérique retiré (code obsolète)",
+        25 => "Pilote non chargé (Démarrage désactivé)",
+        26 => "Échec du pilote (démarrage)",
+        27 => "Pilote incorrect",
+        28 => "Pilote incompatible",
+        29 => "Problème de ressources de carte fille",
+        30 => "Périphérique incompatible avec la version de Windows",
+        31 => "Périphérique en panne (défaillance matérielle)",
+        32 => "Périphérique non activé (paramètre BIOS)",
+        33 => "Périphérique non activé",
+        34 => "Périphérique non disponible (firmware incompatible)",
+        35 => "Périphérique non disponible (mode veille prolongée)",
+        36 => "Périphérique non disponible (arrêt du système)",
+        37 => "Problème de signature de pilote manquante (redémarrage requis)",
+        38 => "Périphérique non activé (conflit de protocole)",
+        39 => "Périphérique non disponible (mise à jour du firmware requise)",
+        40 => "Périphérique non disponible (réinitialisation requise)",
+        41 => "Périphérique non disponible (alimentation insuffisante)",
+        42 => "Périphérique non disponible (ressources système insuffisantes)",
+        43 => "Périphérique non disponible (en attente de ressources)",
+        44 => "Périphérique non disponible (mise à jour du pilote requise)",
+        45 => "Périphérique non disponible (sécurité système)",
+        46 => "Périphérique non disponible (paramètres de sécurité)",
+        47 => "Périphérique non disponible (quota dépassé)",
+        _  => "Code d'erreur inconnu"
+    };
 
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 
@@ -57,6 +112,7 @@ public class PnpDevice
         DriverDate = GetString(mo, "DriverDate");
         HardwareId = string.Join(", ", GetStringArray(mo, "HardwareID"));
         IsPresent = string.Equals(GetString(mo, "Present"), "True", StringComparison.OrdinalIgnoreCase);
+        ConfigManagerErrorCode = GetInt(mo, "ConfigManagerErrorCode");
         Category = DetectCategory();
     }
 
@@ -93,6 +149,12 @@ public class PnpDevice
     {
         try { return mo[property]?.ToString()?.Trim() ?? ""; }
         catch { return ""; }
+    }
+
+    private static int GetInt(ManagementBaseObject mo, string property)
+    {
+        try { return Convert.ToInt32(mo[property]); }
+        catch { return -1; }
     }
 
     private static string[] GetStringArray(ManagementBaseObject mo, string property)

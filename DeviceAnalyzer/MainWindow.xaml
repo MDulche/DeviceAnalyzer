@@ -221,6 +221,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Column="0" Text="Catégorie :"
@@ -313,11 +314,14 @@
                         </Button.Style>
                     </Button>
 
-                    <CheckBox Grid.Column="9" Content="Erreurs seulement"
+                    <CheckBox Grid.Column="9" Content="Erreurs"
                               IsChecked="{Binding ShowErrorsOnly}"
                               VerticalAlignment="Center" Margin="8,0,4,0" />
+                    <CheckBox Grid.Column="10" Content="Problèmes"
+                              IsChecked="{Binding ShowProblemsOnly}"
+                              VerticalAlignment="Center" Margin="0,0,4,0" />
 
-                    <Border Grid.Column="10" Background="#FFCDD2" CornerRadius="10"
+                    <Border Grid.Column="11" Background="#FFCDD2" CornerRadius="10"
                             Padding="6,1" VerticalAlignment="Center"
                             BorderBrush="#C62828" BorderThickness="1"
                             Visibility="{Binding ErrorCount, Converter={StaticResource IntToVis}}">
@@ -432,7 +436,7 @@
                             </Border>
                             <Grid Margin="0,0,0,6">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="100" /><ColumnDefinition Width="*" />
@@ -459,6 +463,15 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Code erreur :"
+                                           Style="{StaticResource DetailLabel}" />
+                                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Vertical">
+                                    <TextBlock Text="{Binding ConfigManagerErrorCode}"
+                                               FontWeight="SemiBold" VerticalAlignment="Top" />
+                                    <TextBlock Text="{Binding ConfigManagerErrorDescription}"
+                                               TextWrapping="Wrap" FontSize="12"
+                                               Foreground="{Binding ConfigManagerErrorCode, Converter={StaticResource StatusToFg}}" />
+                                </StackPanel>
                             </Grid>
 
                             <!-- Section: Matériel -->
@@ -497,6 +510,41 @@
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DriverVersion}" Style="{StaticResource DetailValue}" />
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Date :" Style="{StaticResource DetailLabel}" />
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DriverDate}" Style="{StaticResource DetailValue}" />
+                            </Grid>
+
+                            <!-- Section: Événements (ancré au ViewModel racine) -->
+                            <Border Background="#FFF8E1" CornerRadius="4" Padding="8,4" Margin="0,6,0,6">
+                                <TextBlock Text="Événements" FontSize="12" FontWeight="SemiBold" Foreground="#F57F17" />
+                            </Border>
+                            <Grid Margin="0,0,0,6"
+                                  DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.SelectedDeviceStats}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" /><ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Connexions :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="{Binding ConnectionCount, StringFormat={}{0} connexion(s)}"
+                                           TextWrapping="Wrap" VerticalAlignment="Top" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Déconnexions :" Style="{StaticResource DetailLabel}" />
+                                <TextBlock Grid.Row="1" Grid.Column="1"
+                                           TextWrapping="Wrap" VerticalAlignment="Top">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding DisconnectionCount, StringFormat={}{0} déconnexion(s)}" />
+                                            <Setter Property="Foreground" Value="#555" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsUnstable}" Value="True">
+                                                    <Setter Property="FontWeight" Value="Bold" />
+                                                    <Setter Property="Foreground" Value="#C62828" />
+                                                    <Setter Property="Text" Value="{Binding DisconnectionCount, StringFormat={}⚠ {0} déconnexion(s) — périphérique instable}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </Grid>
 
                         </StackPanel>
