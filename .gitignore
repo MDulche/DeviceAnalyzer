@@ -20,3 +20,10 @@ packages/
 ## OS
 .DS_Store
 Thumbs.db
+
+## Build artifacts
+publish/
+*.zip
+
+## Logs
+*.log
